@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset='utf-8' />
+    <title>Mapbox Example</title>
+    <meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
+    <script src='https://api.mapbox.com/mapbox-gl-js/v2.3.1/mapbox-gl.js'></script>
+    <link href='https://api.mapbox.com/mapbox-gl-js/v2.3.1/mapbox-gl.css' rel='stylesheet' />
+    <script src='https://cdn.jsdelivr.net/npm/chart.js'></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+        }
+
+        #map {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 100%;
+        }
+        #filter {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            z-index: 1;
+            background-color: white;
+            border-radius: 3px;
+            padding: 10px;
+            font-size: 14px;
+            line-height: 1.5;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.10);
+        }
+        .map-overlay {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 1;
+            background-color: rgba(255, 255, 255, 0.9);
+            padding: 20px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.3);
+            border-radius: 5px;
+            font-family: Arial, sans-serif;
+            font-size: 16px;
+            cursor: pointer;
+          }
+         
+          
+          .overlay-hidden {
+            display: none;
+          }
+          
+          .map-overlay h2 {
+            margin-top: 0px;
+            margin-bottom: 10px;
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+          }
+          
+          .map-overlay table {
+            margin-bottom: 10px;
+          }
+          
+          .map-overlay p {
+            margin: 0px;
+            color: #666;
+          }
+          
+          .map-overlay a {
+            color: #0066cc;
+          }
+          
+          .map-overlay a:hover {
+            text-decoration: underline;
+          }
+
+           .legend {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-size: 14px;
+            font-weight: bold;
+            position: absolute;
+            bottom: 50px;
+            right: 10px;
+            background: white
+          }
+          
+          .gradient-bar {
+            height: 20px;
+            width: 200px;
+            border-radius: 5px;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+            background: linear-gradient(to right, blue, white, red);
+            position: relative;
+          }
+          
+          .label-min {
+            position: absolute;
+            left: 0;
+            bottom: -20px;
+            color:ghostwhite
+          }
+          
+          .label-max {
+            position: absolute;
+            right: 0;
+            bottom: -20px;
+            color:ghostwhite
+          }
+          .popup table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-top: 10px;
+          }
+          
+          .popup th, .popup td {
+            padding: 8px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+          }
+          
+          .popup th {
+            background-color: #f2f2f2;
+          }
+
+        
+        
+    </style>
+</head>
+<body>
+    <div id='map'></div>
+    <div id='filter'>
+        <input type="radio" name="ethnicity" value="all" checked> All MSOAS
+        <input type="radio" name="ethnicity" value="30%"> 0 - 30% White Ethnicity
+        <input type="radio" name="ethnicity" value="50%"> 30% - 50% White Ethnicity
+        <input type="radio" name="ethnicity" value="80%"> 80 - 95% White Ethnicity
+        <input type="radio" name="ethnicity" value="95%"> 95%+ White Ethnicity
+    </div>
+    <div class='map-overlay'>
+        <div class='map-overlay-inner'>
+            <h2>Mapping Ethnic Health Inequalities in England and Wales</h2>
+            <table><tr><td>
+             </td>
+             </tr>
+             <tr><td><p class="cityfly">Zoom To: <a href="#" class="citylink" id="birm">Birmingham</a> &nbsp;<a href="#" class="citylink" id="bris">Bristol</a> &nbsp;<a href="#" class="citylink" id="leed">Leeds</a> &nbsp;<a href="#" class="citylink" id="lond">London</a> &nbsp;<a href="#" class="citylink" id="manc">Manchester</a> &nbsp;<a href="#" class="citylink" id="newc">Newcastle</a></p>
+             </td></tr>
+             </table>
+             <p class="credit">Data: Census 2011, Office for National Statistics</p>
+    </div>
+    </div>
+
+
+    <div class="legend">
+        <div class="gradient-bar"></div>
+        <div class="label-min">0%</div>
+        <div class="label-max">20%</div>
+      </div>
+
+
+
+    
+    <script>
+        mapboxgl.accessToken = 'pk.eyJ1IjoibXVyYXQ5MyIsImEiOiJjbGNybzAyZTEwaG1rM3BwZHRwZ210NXNqIn0.DCt_EmK0IBm90J5-s_8Jtw';
+
+        var map = new mapboxgl.Map({
+            container: 'map',
+            style: 'mapbox://styles/mapbox/dark-v11',
+            center: [-0.1278, 51.5074],
+            zoom: 10,
+            minZoom: 1
+        });
+       
+        map.on('load', function() {
+            map.addLayer({
+                id: 'fill-layer',
+                type: 'fill',
+                source: {
+                    type: 'vector',
+                    url: 'mapbox://murat93.dzzqr1xj'
+                },
+                'source-layer': 'output-al39r1',
+            
+                paint: {
+                    'fill-color': [
+                        'interpolate',
+                        ['linear'],
+                        ['get', 'General Health Bad or Very Bad %'],
+                        0, 'blue',
+                        10, 'white',
+                        20, 'red'
+                    ],
+                    'fill-opacity': 0.25
+                }
+            });
+             // Add a legend to the map
+
+  });
+  
+
+
+       // Add a click event to the fill layer to show MSOA details
+       map.on('click', 'fill-layer', function(e) {
+        var msoaName = e.features[0].properties['MSOA11NM'];
+        var msoaBadHealth = e.features[0].properties['General Health Bad or Very Bad %'].toFixed(2);
+        var White = e.features[0].properties['White Resident'].toFixed(2);
+        var Black = e.features[0].properties['Black'].toFixed(2);
+        var Mixed = e.features[0].properties['Mixed Ethnic'].toFixed(2);
+        var Asian = e.features[0].properties['Asian'].toFixed(2);
+        var Other = e.features[0].properties['Other'].toFixed(2); 
+        
+        // Highlight clicked feature
+     var clickedStateId = e.features[0].id;
+ 
+      
+        var popup = new mapboxgl.Popup()
+          .setLngLat(e.lngLat)
+          .setHTML('<div class="popup"><h2>' + msoaName + '</h2><table><tr><th>Ethnicity</th><th>Percentage</th></tr><tr><td>White</td><td>' + White + '</td></tr><tr><td>Black</td><td>' + Black + '</td></tr><tr><td>Mixed</td><td>' + Mixed + '</td></tr><tr><td>Asian</td><td>' + Asian + '</td></tr><tr><td>Other</td><td>' + Other + '</td></tr><tr><td>Bad Health</td><td>' + msoaBadHealth + '</td></tr></table></div>')
+          .addTo(map);
+      
+  
+    displayChart2(msoaName, White, Black, Mixed, Asian, Other);
+  });
+  
+  function displayChart2(label, value1, value2, value3, value4, value5) {
+
+    
+    // Create chart element
+    var chartEl = document.createElement('canvas');
+    chartEl.width = 200;
+    chartEl.height = 200;
+    chartEl.backgroundColor = 'white';
+
+   
+  
+    // Add chart to top right of map
+    var chartContainer = document.createElement('div');
+    chartContainer.style.position = 'absolute';
+    chartContainer.style.top = '10px';
+    chartContainer.style.right = '10px';
+    chartContainer.style.backgroundColor = 'white';
+    chartContainer.appendChild(chartEl);
+    map.getCanvasContainer().appendChild(chartContainer);
+  
+    // Chart.js code to create chart
+    var chart = new Chart(chartEl, {
+      type: 'bar',
+      data: {
+        labels: [label],
+        datasets: [{
+          label: 'White',
+          data: [value1],
+          backgroundColor: '#ff0000'
+        }, {
+          label: 'Black',
+          data: [value2],
+          backgroundColor: '#00ff00'
+        }, {
+          label: 'Mixed',
+          data: [value3],
+          backgroundColor: '#0000ff'
+        }, {
+          label: 'Asian',
+          data: [value4],
+          backgroundColor: '#ffff00'
+        }, {
+          label: 'Other',
+          data: [value5],
+          backgroundColor: '#ff00ff'
+        }]
+      },
+      options: {
+        scales: {
+          yAxes: [{
+            ticks: {
+              beginAtZero: true
+            }, 
+          }]
+        }
+      },
+    });
+  }
+        // Change the cursor to a pointer when the mouse is over the fill layer
+        map.on('mouseenter', 'fill-layer', function() {
+            map.getCanvas().style.cursor = 'pointer';
+        });
+
+        // Change it back to a default pointer when it leaves
+        map.on('mouseleave', 'fill-layer', function() {
+            map.getCanvas().style.cursor = '';
+        });
+// Get a reference to the filter div and the radio buttons
+var filterDiv = document.getElementById('filter');
+var allRadio = filterDiv.querySelector('input[value="all"]');
+var thirtyRadio = filterDiv.querySelector('input[value="30%"]');
+var fiftyRadio = filterDiv.querySelector('input[value="50%"]');
+var eightyRadio = filterDiv.querySelector('input[value="80%"]');
+var ninetyFiveRadio = filterDiv.querySelector('input[value="95%"]');
+
+allRadio.addEventListener('change', function() {
+    var filter = ['all']; // Set the filter to show all MSOAs
+    map.setFilter('fill-layer', filter);
+});
+
+thirtyRadio.addEventListener('change', function() {
+    var filter = ['<', ['get', 'White Resident'], 30]; // Set the filter to show areas where the percentage of white residents is less than 30%
+    map.setFilter('fill-layer', filter);
+});
+
+thirtyRadio.addEventListener('change', function() {
+    var filter = ['<', ['get', 'White Resident'], 30]; // Set the filter to show areas where the percentage of white residents is less than 30%
+    map.setFilter('fill-layer', filter);
+});
+
+fiftyRadio.addEventListener('change', function() {
+    var filter = ['all', // Set the filter to show areas where the percentage of white residents is between 30% and 50%
+        ['>=', ['get', 'White Resident'], 30],
+        ['<', ['get', 'White Resident'], 50]
+    ];
+    map.setFilter('fill-layer', filter);
+});
+
+eightyRadio.addEventListener('change', function() {
+    var filter = ['all', // Set the filter to show areas where the percentage of white residents is between 80% and 95%
+        ['>=', ['get', 'White Resident'], 80],
+        ['<', ['get', 'White Resident'], 95]
+    ];
+    map.setFilter('fill-layer', filter);
+});
+
+ninetyFiveRadio.addEventListener('change', function() {
+    var filter = ['>=', ['get', 'White Resident'], 95]; // Set the filter to show areas where the percentage of white residents is greater than or equal to 95%
+    map.setFilter('fill-layer', filter);
+});
+
+
+var x = document.getElementsByClassName('citylink');
+var i;
+		for (i = 0; i < x.length; i++) {
+			x[i].addEventListener('click', function(e) {
+
+				var lat,long;
+
+				switch(e.target.id) {
+					case "birm": long=-1.8904; lat=52.4862; break;
+					case "bris": long=-2.5879; lat=51.4545; break;
+					case "leed": long=-1.5491; lat=53.8008; break;
+					case "lond": long=-0.1278; lat=51.5074; break;
+					case "manc": long=-2.2426; lat=53.4808; break;
+					case "newc": long=-1.6178; lat=54.9783; break;
+				}
+
+				map.flyTo({
+					center: [long,lat],
+					zoom: 9,
+					speed: 0.3,
+					pitch: 50
+					});
+			});
+		}
+        
+
+
+
+
+
+        
+</script>
+</body>
+</html>
